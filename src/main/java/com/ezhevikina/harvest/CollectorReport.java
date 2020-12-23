@@ -1,12 +1,19 @@
 package com.ezhevikina.harvest;
 
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 
 public class CollectorReport implements Runnable {
   private final WareHouse wareHouse;
+  private CountDownLatch allCollectorsAreDone;
+  private CountDownLatch collectorsCanGetSalary;
 
-  public CollectorReport(WareHouse wareHouse) {
+  public CollectorReport(WareHouse wareHouse,
+                         CountDownLatch allCollectorsAreDone,
+                         CountDownLatch collectorsCanGetSalary) {
     this.wareHouse = wareHouse;
+    this.allCollectorsAreDone = allCollectorsAreDone;
+    this.collectorsCanGetSalary = collectorsCanGetSalary;
   }
 
   private void printReport(WareHouse wareHouse) {
@@ -27,7 +34,14 @@ public class CollectorReport implements Runnable {
   @Override
   public void run() {
     synchronized (wareHouse) {
+      try {
+        allCollectorsAreDone.await();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+
       printReport(wareHouse);
+      collectorsCanGetSalary.countDown();
     }
   }
 }
